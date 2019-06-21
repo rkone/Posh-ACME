@@ -125,27 +125,33 @@ function Invoke-ACME {
             $body = $_.ErrorDetails.Message
             Write-Debug "Error Body: $body"
 
-        } else { throw }
+        } else { $PSCmdlet.ThrowTerminatingError($PSItem) }
 
         # ACME uses RFC7807, Problem Details for HTTP APIs
         # https://tools.ietf.org/html/rfc7807
         # So a JSON parseable error object should be in the response body.
-        try { $acmeError = $body | ConvertFrom-Json }
+        try { $jsonError = $body | ConvertFrom-Json -EA Stop }
         catch {
-            Write-Warning "Response body was not JSON parseable"
+            Write-Warning "Unable to parse JSON error body"
             # re-throw the original exception
             throw $ex
         }
 
         # check for badNonce and retry once
-        if (!$NoRetry -and $freshNonce -and $acmeError.type -and $acmeError.type -like '*:badNonce') {
+        if (!$NoRetry -and $freshNonce -and $jsonError.type -and $jsonError.type -like '*:badNonce') {
             $Header.nonce = $script:Dir.nonce
             Write-Debug "Retrying with updated nonce"
             return (Invoke-ACME $Header $PayloadJson -Key $acctKey -NoRetry)
         }
 
-        # throw the converted AcmeException
-        throw [AcmeException]::new($acmeError.detail,$acmeError)
+        # generate a new ErrorRecord with our AcmeException and throw it
+        $newError = [Management.Automation.ErrorRecord]::new(
+            [AcmeException]::new($jsonError.detail,$jsonError),
+            'AcmeException',
+            [Management.Automation.ErrorCategory]::InvalidOperation,
+            $PSItem.TargetObject
+        )
+        $PSCmdlet.ThrowTerminatingError($newError)
     }
 
 
