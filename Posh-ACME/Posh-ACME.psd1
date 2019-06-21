@@ -29,7 +29,7 @@ DotNetFrameworkVersion = '4.7.1'
 RequiredAssemblies = @('lib\BouncyCastle.Crypto.dll')
 
 # Script files (.ps1) that are run in the caller's environment prior to importing this module.
-# ScriptsToProcess = @()
+ScriptsToProcess = @('Private\AcmeException.ps1')
 
 # Type files (.ps1xml) to be loaded when importing this module
 # TypesToProcess = @()
