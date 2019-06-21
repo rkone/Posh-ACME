@@ -1,8 +1,10 @@
 class AcmeException : System.Exception
 {
-    [PSObject]$Data
+    [PSObject]$Problem
+    [string]$ProblemRaw
 
     AcmeException($Message,$Data) : base($Message) {
-        $this.Data = $Data
+        $this.Problem = $Data
+        $this.ProblemRaw = $Data | ConvertTo-Json -Depth 5
     }
 }
